@@ -1,0 +1,4 @@
+templates/
+venv/
+*.py
+!app.py
