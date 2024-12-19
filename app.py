@@ -8,8 +8,8 @@ import asyncio
 #
 # logging.basicConfig(level=logging.DEBUG)
 
-CLIENT_ID = 'y405cufg37e8l2tmh6u9ruwl9011ce'
-CLIENT_SECRET = 'y3cilrhl2oe7tjhxillq4izorunnn7'
+CLIENT_ID = ''
+CLIENT_SECRET = 'y'
 
 TARGET_CHANNEL = 'ozhunt'
 SPECIAL_KEYWORD = '!giveall'
@@ -17,7 +17,7 @@ KEYWORD = '!release'
 
 
 
-client = MongoClient('mongodb+srv://Bamidele1:1631324de@mycluster.vffurcu.mongodb.net/?retryWrites=true&w=majority')
+client = MongoClient('')
 db = client['test']
 viewers_collection = db['watch_time']
 
