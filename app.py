@@ -27,7 +27,7 @@ user_sessions = {}
 class TwitchBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            token="oauth:l168k48nde6xlhvs3yjhp24a3beqm8",
+            token="oauth:9c39cc9i4q941lioojlkgi6lrvlo2b",
             prefix="!",
             initial_channels=[TARGET_CHANNEL]
         )
@@ -73,7 +73,8 @@ class TwitchBot(commands.Bot):
                     "cryptoType": "",
                     "address": "",
                     "Casino-Name": "",
-                    "is_logged_in": False
+                    "is_logged_in": False,
+                    "clear": False
                 })
                 print(f"New user {username} added to the database.")
             else:
@@ -207,7 +208,7 @@ class TwitchBot(commands.Bot):
                 "cryptoType": "",
                 "address": "",
                 "Casino-Name": "",
-                "is_logged_in": False
+                "clear":False
 
 
             })
@@ -233,7 +234,8 @@ class TwitchBot(commands.Bot):
                 "cryptoType": "",
                 "address": "",
                 "Casino-Name": "",
-                "is_logged_in": False
+                "is_logged_in": False,
+                "clear": False
 
 
             })
@@ -259,7 +261,8 @@ class TwitchBot(commands.Bot):
                 "cryptoType": "",
                 "address": "",
                 "Casino-Name": "",
-                "is_logged_in": False
+                "is_logged_in": False,
+                "clear": False
 
 
             })
@@ -281,7 +284,8 @@ class TwitchBot(commands.Bot):
                 "cryptoType": "",
                 "address": "",
                 "Casino-Name": "",
-                "is_logged_in": False
+                "is_logged_in": False,
+                "clear": False
             })
             return 0
 
