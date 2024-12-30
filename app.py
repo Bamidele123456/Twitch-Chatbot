@@ -27,7 +27,7 @@ user_sessions = {}
 class TwitchBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            token="oauth:9c39cc9i4q941lioojlkgi6lrvlo2b",
+            token="",
             prefix="!",
             initial_channels=[TARGET_CHANNEL]
         )
@@ -51,6 +51,7 @@ class TwitchBot(commands.Bot):
         # Announce in the chat
         channel_obj = self.get_channel(channel_name)
         if channel_obj:
+
             await channel_obj.send(f"🎉 Thank you {subscriber} for subscribing at Tier {tier}! You've been rewarded with 1 Oz Coin! 🎉")
 
     async def event_message(self, message):
@@ -60,10 +61,13 @@ class TwitchBot(commands.Bot):
         username = message.author.name
         now = datetime.utcnow()
 
+        print(f"Processing message from: {username}")
+
         is_streamer_live = await self.is_user_live(TARGET_CHANNEL)
         if is_streamer_live:
-            viewer = viewers_collection.find_one({"username": username})
+            viewer = viewers_collection.find_one({"username": {"$regex": f"^{username}$", "$options": "i"}})
             if not viewer:
+                # Add new user
                 viewers_collection.insert_one({
                     "username": username,
                     "first_seen": now,
@@ -78,21 +82,38 @@ class TwitchBot(commands.Bot):
                 })
                 print(f"New user {username} added to the database.")
             else:
-                time_spent = (now - viewer["last_seen"]).total_seconds()
+                print(username)
+                # Parse last_seen safely
+                last_seen = viewer.get("last_seen", now)
+                if isinstance(last_seen, str):
+                    try:
+                        last_seen = datetime.strptime(last_seen, "%Y-%m-%dT%H:%M:%S")
+                    except ValueError:
+                        print(f"Invalid datetime format for {username}: {last_seen}. Defaulting to now.")
+                        last_seen = now
+
+                # Calculate time spent
+                time_spent = (now - last_seen).total_seconds()
                 if time_spent >= 21600:
-                    pass
+                    print(f"{username} has been inactive for too long: {time_spent} seconds. Marking as inactive.")
+                    viewers_collection.update_one(
+                        {"username": username},
+                        {
+                            "$set": {
+                                "last_seen": now,
+                            }
+                        }
+                    )
                 else:
                     new_total_time = viewer["total_time"] + time_spent
-                    new_points = new_total_time // 3600
-
-
+                    new_points = new_total_time / 3600
                     viewers_collection.update_one(
                         {"username": username},
                         {
                             "$set": {
                                 "last_seen": now,
                                 "total_time": new_total_time,
-                                "Points": new_points
+                                "Points": new_points,
                             }
                         }
                     )
