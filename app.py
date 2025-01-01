@@ -106,7 +106,9 @@ class TwitchBot(commands.Bot):
                     )
                 else:
                     new_total_time = viewer["total_time"] + time_spent
-                    new_points = new_total_time / 3600
+                    points = time_spent / 3600
+                    old_points = viewer["Points"]
+                    new_points = old_points + points
                     viewers_collection.update_one(
                         {"username": username},
                         {
@@ -143,7 +145,7 @@ class TwitchBot(commands.Bot):
     async def release(self, ctx: commands.Context, *, username: str):
         """Reward a specific viewer."""
         # Split the message content to get the username
-        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower():
+        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower() or ctx.author.name.lower() == "tyrshadow":
             await self.reward_viewer(username)
             await ctx.send(f"🎉 {username} has been rewarded with 1 Oz Coin!")
         else:
@@ -157,7 +159,7 @@ class TwitchBot(commands.Bot):
         if points < 0:
             await ctx.send("⚠️ Points must be a positive number!")
             return
-        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower():
+        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower() or ctx.author.name.lower() == "tyrshadow":
             await self.reward_viewera(username,points)
             await ctx.send(f"🎉 {username} has been rewarded with {points} Oz Coin!")
         else:
@@ -171,7 +173,7 @@ class TwitchBot(commands.Bot):
         if points < 0:
             await ctx.send("⚠️ Points must be a positive number!")
             return
-        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower():
+        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower() or ctx.author.name.lower() == "tyrshadow":
             await self.reward_viewerr(username, points)
             await ctx.send(f"🎉 {username} has been deducted with {points} Oz Coin!")
         else:
@@ -187,7 +189,7 @@ class TwitchBot(commands.Bot):
 
         points = await self.getpoints(username)
 
-        await ctx.send(f"🎉 {ctx.author.display_name}, you have {points} Oz Coin!")
+        await ctx.send(f"🎉 {username}, you have {points} Oz Coin!")
 
     async def is_user_live(self, username):
         """Check if a Twitch user is currently streaming."""
@@ -237,15 +239,18 @@ class TwitchBot(commands.Bot):
 
     async def reward_viewera(self, username,points):
         user = viewers_collection.find_one({"username": username})
-        now = datetime.utcnow()
+        pointi = int(points)
+
         if user:
-            new_balance = user.get('Points', 0) + points
+            balance = user.get('Points', 0)
+            new_balance = balance + pointi
             viewers_collection.update_one(
                 {'username': username},
                 {'$set': {'Points': new_balance}}
             )
             print(f"Rewarded 1 Oz Coin to {username}!")
         else:
+            now = datetime.utcnow()
             viewers_collection.insert_one({
                 "username": username,
                 "first_seen": now,
@@ -264,15 +269,18 @@ class TwitchBot(commands.Bot):
 
     async def reward_viewerr(self, username,points):
         user = viewers_collection.find_one({"username": username})
-        now = datetime.utcnow()
+        pointsi = int(points)
+
         if user:
-            new_balance = user.get('Points', 0) - points
+            balance = user.get('Points', 0)
+            new_balance = balance - pointsi
             viewers_collection.update_one(
                 {'username': username},
                 {'$set': {'Points': new_balance}}
             )
             print(f"Rewarded 1 Oz Coin to {username}!")
         else:
+            now = datetime.utcnow()
             viewers_collection.insert_one({
                 "username": username,
                 "first_seen": now,
