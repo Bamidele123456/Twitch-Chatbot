@@ -17,9 +17,12 @@ KEYWORD = '!release'
 
 
 
-client = MongoClient('')
+client = MongoClient('mongodb+srv://Bamidele1:1631324de@mycluster.vffurcu.mongodb.net/?retryWrites=true&w=majority')
 db = client['test']
 viewers_collection = db['watch_time']
+giveaway = db['giveaway']
+bet = db["Twitch-bets"]
+winners = db["Twitch-winners"]
 
 user_sessions = {}
 
@@ -27,7 +30,7 @@ user_sessions = {}
 class TwitchBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            token="",
+            token="oauth:9d15w281ysrfczzgjkx4odsy1ind2b",
             prefix="!",
             initial_channels=[TARGET_CHANNEL]
         )
@@ -141,6 +144,112 @@ class TwitchBot(commands.Bot):
             # Deny access if the user is not authorized
             await ctx.send("⚠️ Only the channel owner or moderators can use this command.")
 
+    @commands.command(name="startbetting")
+    async def starbet(self, ctx: commands.Context, type: str, *options: str):
+        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower() or ctx.author.name.lower() == "tyrshadow":
+            options_list = list(options)
+            print("Type:", type)
+            print("Options:", options_list)
+            await self.start_bet(type, options_list)
+
+            formatted_options = "/".join(options_list)
+            await ctx.send(f"✅ Betting’s open! Use !bet [amount] [{formatted_options}]")
+        else:
+            await ctx.send("⚠️ Only the channel owner or moderators can use this command.")
+
+    @commands.command(name="bet")
+    async def bet(self, ctx: commands.Context, amount: int, option: str):
+        """Allows a user to place a bet."""
+        # Step 1: Check if betting is open
+        session = bet.find_one({"platform": "twitch"})
+        if not session or not session.get("started", False):
+            await ctx.send("⚠️ Betting is currently closed.")
+            return
+
+        # Step 2: Continue if session is active
+        username = ctx.author.name
+        points = await self.getpoints(username)
+
+        if points >= amount:
+            await self.add_bet(username, amount, option)
+            await self.reward_viewerr(username, amount)
+            await ctx.send(f"🎲 Bet placed: {username} - {amount} OZcoins on {option}!")
+        else:
+            await ctx.send(f"❌ {username}, you don't have up to {amount} OZcoins.")
+
+    @commands.command(name="betlist")
+    async def betlist(self, ctx: commands.Context):
+        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower() or ctx.author.name.lower() == "tyrshadow":
+            bets = bet.find({"type": "user_bet"})
+            bet_lines = []
+
+            for b in bets:
+                user = b.get("username", "Unknown")
+                option = b.get("option", "N/A")
+                amount = b.get("amount", 0)
+                bet_lines.append(f"{user}: {amount} OZcoins on {option}")
+
+            if bet_lines:
+                response = "📜 Current Bets:\n" + "\n".join(bet_lines)
+                await ctx.send(response[:500])
+            else:
+                await ctx.send("📭 No bets placed yet.")
+        else:
+            await ctx.send("⚠️ Only the channel owner or moderators can use this command.")
+
+    @commands.command(name="endbetting")
+    async def end_betting(self, ctx: commands.Context, winner: str):
+        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower() or ctx.author.name.lower() == "tyrshadow":
+            # Step 1: Get all user bets
+            all_bets = list(bet.find({"type": "user_bet"}))
+            winners_list = []
+            reward_messages = []
+
+            for b in all_bets:
+                if b["option"].lower() == winner.lower():
+                    username = b["username"]
+                    amount = b["amount"]
+                    reward = float(amount) * 2
+
+                    # Step 2: Add double coins to user
+                    await self.reward_viewera(username, reward)
+
+                    winners_list.append({
+                        "username": username,
+                        "amount": amount,
+                        "option": winner,
+                        "reward": reward
+                    })
+
+                    reward_messages.append(f"{username} ({amount} on {winner}) gets {reward} Ozcoins!")
+
+            # Step 3: Update the current session
+            bet.update_one(
+                {"platform": "twitch"},
+                {
+                    "$set": {
+                        "winner": winner,
+                        "started": False,
+                        "winners": winners_list
+                    }
+                }
+            )
+
+            # Step 4: Save session to `winners` collection
+            session_data = bet.find_one({"platform": "twitch"})
+            winners.insert_one(session_data)
+
+            # Step 5: Clear current user bets
+            bet.delete_many({"type": "user_bet"})
+
+            # Step 6: Send response
+            if winners_list:
+                await ctx.send(f"✅ Betting closed! Winners: " + " | ".join(reward_messages))
+            else:
+                await ctx.send(f"✅ Betting closed! No winners this round.")
+        else:
+            await ctx.send("⚠️ Only the channel owner or moderators can use this command.")
+
     @commands.command(name="release")
     async def release(self, ctx: commands.Context, *, username: str):
         """Reward a specific viewer."""
@@ -191,6 +300,14 @@ class TwitchBot(commands.Bot):
 
         await ctx.send(f"🎉 {username}, you have {points} Oz Coin!")
 
+    @commands.command(name="enter")
+    async def enter(self, ctx: commands.Context, *, username: str = None):
+        username = ctx.author.name
+
+        await self.enterg(username)
+
+        await ctx.send(f"🎉 {username}, have registered for the giveaway")
+
     async def is_user_live(self, username):
         """Check if a Twitch user is currently streaming."""
         users = await self.fetch_users(names=[username])
@@ -210,6 +327,56 @@ class TwitchBot(commands.Bot):
                 {'$set': {'Points': new_balance}}
             )
         print(f"Rewarded 1 Oz Coin to all viewers!")
+
+    async def enterg(self,username):
+        now = datetime.utcnow()
+
+        details = giveaway.find_one({"username": username})
+        if not details:
+            giveaway.insert_one({"username": username, "date": now, "source": "twitch", "winner": False})
+        print(f"{username} has registered for giveaway")
+
+    async def start_bet(self, type, options):
+        bet.update_one(
+            {"platform": "twitch"},
+            {
+                "$set": {
+                    "type": type,
+                    "options": options,
+                    "winner": "",
+                    "started": True,
+                    "winners":""
+                }
+            },
+            upsert=True
+        )
+
+    async def add_bet(self, user, amount,option):
+        bet.insert_one(
+            {
+                    "type": "user_bet",
+                    "username": user,
+                    "option": option,
+                    "amount": amount
+                }
+        )
+
+    async def end_bet(self, winner,winners):
+        bet.update_one(
+            {"platform": "twitch"},
+            {
+                "$set": {
+                    "winner": winner,
+                    "started": False,
+                    "winners": ""
+                }
+            },
+        )
+
+
+
+
+
 
     async def reward_viewer(self, username):
         user = viewers_collection.find_one({"username": username})
@@ -278,7 +445,7 @@ class TwitchBot(commands.Bot):
                 {'username': username},
                 {'$set': {'Points': new_balance}}
             )
-            print(f"Rewarded 1 Oz Coin to {username}!")
+            print(f"Removed {points} Coin to {username}!")
         else:
             now = datetime.utcnow()
             viewers_collection.insert_one({
