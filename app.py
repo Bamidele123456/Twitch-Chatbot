@@ -22,7 +22,7 @@ db = client['test']
 viewers_collection = db['watch_time']
 giveaway = db['giveaway']
 bet = db["Twitch-bets"]
-winners = db["Twitch-winners"]
+winners = db["Winners"]
 
 user_sessions = {}
 
@@ -30,7 +30,7 @@ user_sessions = {}
 class TwitchBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            token="oauth:9d15w281ysrfczzgjkx4odsy1ind2b",
+            token="oauth:59xmq20j438y85gb33zpk4m6sdy56i",
             prefix="!",
             initial_channels=[TARGET_CHANNEL]
         )
@@ -170,7 +170,9 @@ class TwitchBot(commands.Bot):
         username = ctx.author.name
         points = await self.getpoints(username)
 
-        if points >= amount:
+        if amount >30:
+            await ctx.send(f"❌ {username}, you can't bet more than 30 OZcoin")
+        elif points >= amount:
             await self.add_bet(username, amount, option)
             await self.reward_viewerr(username, amount)
             await ctx.send(f"🎲 Bet placed: {username} - {amount} OZcoins on {option}!")
@@ -179,23 +181,20 @@ class TwitchBot(commands.Bot):
 
     @commands.command(name="betlist")
     async def betlist(self, ctx: commands.Context):
-        if ctx.author.is_mod or ctx.author.name.lower() == TARGET_CHANNEL.lower() or ctx.author.name.lower() == "tyrshadow":
-            bets = bet.find({"type": "user_bet"})
-            bet_lines = []
+        bets = bet.find({"type": "user_bet"})
+        bet_lines = []
 
-            for b in bets:
-                user = b.get("username", "Unknown")
-                option = b.get("option", "N/A")
-                amount = b.get("amount", 0)
-                bet_lines.append(f"{user}: {amount} OZcoins on {option}")
+        for b in bets:
+            user = b.get("username", "Unknown")
+            option = b.get("option", "N/A")
+            amount = b.get("amount", 0)
+            bet_lines.append(f"{user}: {amount} OZcoins on {option}")
 
-            if bet_lines:
-                response = "📜 Current Bets:\n" + "\n".join(bet_lines)
-                await ctx.send(response[:500])
-            else:
-                await ctx.send("📭 No bets placed yet.")
+        if bet_lines:
+            response = "📜 Current Bets:\n" + "\n".join(bet_lines)
+            await ctx.send(response[:500])
         else:
-            await ctx.send("⚠️ Only the channel owner or moderators can use this command.")
+            await ctx.send("📭 No bets placed yet.")
 
     @commands.command(name="endbetting")
     async def end_betting(self, ctx: commands.Context, winner: str):
@@ -237,6 +236,10 @@ class TwitchBot(commands.Bot):
 
             # Step 4: Save session to `winners` collection
             session_data = bet.find_one({"platform": "twitch"})
+            if "_id" in session_data:
+                del session_data["_id"]
+
+                # Insert the session data into the winners collection
             winners.insert_one(session_data)
 
             # Step 5: Clear current user bets
@@ -352,13 +355,17 @@ class TwitchBot(commands.Bot):
         )
 
     async def add_bet(self, user, amount,option):
-        bet.insert_one(
+        bet.update_one(
+            {"username": user},  # Searching by username
             {
+                "$set": {
                     "type": "user_bet",
                     "username": user,
                     "option": option,
                     "amount": amount
                 }
+            },
+            upsert=True  # If no document is found, create a new one
         )
 
     async def end_bet(self, winner,winners):
