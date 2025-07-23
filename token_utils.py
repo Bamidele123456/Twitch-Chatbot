@@ -44,5 +44,3 @@ def refresh_token():
     else:
         raise Exception("Token refresh failed")
 
-
-refresh_token()
