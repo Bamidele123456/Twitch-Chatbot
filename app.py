@@ -8,8 +8,8 @@ from token_utils import exit_after_delay
 load_dotenv()
 token = os.getenv('ACCESS_TOKEN')
 
-CLIENT_ID = 'y405cufg37e8l2tmh6u9ruwl9011ce'
-CLIENT_SECRET = 'ykm1ok8yrf2ym2jcz7tcp8pcdthnkk'
+CLIENT_ID = ''
+CLIENT_SECRET = ''
 
 TARGET_CHANNEL = 'ozhunt'
 SPECIAL_KEYWORD = '!giveall'
@@ -17,7 +17,7 @@ KEYWORD = '!release'
 
 
 
-client = MongoClient('mongodb+srv://Bamidele1:1631324de@mycluster.vffurcu.mongodb.net/?retryWrites=true&w=majority')
+client = MongoClient('')
 db = client['test']
 viewers_collection = db['watch_time']
 giveaway = db['giveaway']
@@ -34,7 +34,7 @@ class TwitchBot(commands.Bot):
             initial_channels=[TARGET_CHANNEL],
             client_id=CLIENT_ID,
             client_secret=CLIENT_SECRET,
-            refresh_token = "dm13rwsv80vs1iz97yv69w1l9hian32v48dp4s8wqw104pnn9d",
+            refresh_token = "",
         )
 
     async def event_ready(self):
