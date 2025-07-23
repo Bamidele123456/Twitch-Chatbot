@@ -2,3 +2,6 @@ templates/
 venv/
 *.py
 !app.py
+!token_utils.py
+Kick.txt
+tokens.json

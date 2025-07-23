@@ -1,15 +1,15 @@
 from twitchio.ext import commands
 from pymongo import MongoClient
-import time
-import requests
+import os
 from datetime import datetime
-import asyncio
-# import logging
-#
-# logging.basicConfig(level=logging.DEBUG)
+from dotenv import load_dotenv, set_key
+from token_utils import exit_after_delay
 
-CLIENT_ID = ''
-CLIENT_SECRET = 'y'
+load_dotenv()
+token = os.getenv('ACCESS_TOKEN')
+
+CLIENT_ID = 'y405cufg37e8l2tmh6u9ruwl9011ce'
+CLIENT_SECRET = 'ykm1ok8yrf2ym2jcz7tcp8pcdthnkk'
 
 TARGET_CHANNEL = 'ozhunt'
 SPECIAL_KEYWORD = '!giveall'
@@ -26,17 +26,22 @@ winners = db["Winners"]
 
 user_sessions = {}
 
-# Twitch Bot Class
 class TwitchBot(commands.Bot):
     def __init__(self):
         super().__init__(
-            token="oauth:59xmq20j438y85gb33zpk4m6sdy56i",
+            token=f"oauth:{token}",
             prefix="!",
-            initial_channels=[TARGET_CHANNEL]
+            initial_channels=[TARGET_CHANNEL],
+            client_id=CLIENT_ID,
+            client_secret=CLIENT_SECRET,
+            refresh_token = "dm13rwsv80vs1iz97yv69w1l9hian32v48dp4s8wqw104pnn9d",
         )
 
     async def event_ready(self):
         print(f"Bot is online! Connected to {TARGET_CHANNEL}")
+
+    async def start(self):
+        await super().start()
 
     async def event_usernotice_subscription(self, metadata):
         """Handle subscription or re-subscription events."""
@@ -492,7 +497,8 @@ class TwitchBot(commands.Bot):
             })
             return 0
 
-# Run the Bot
+
 if __name__ == "__main__":
+    exit_after_delay(3 * 60 * 60)  # 3 hours = 10800 seconds
     bot = TwitchBot()
     bot.run()
