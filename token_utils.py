@@ -4,8 +4,8 @@ import sys
 import threading
 from dotenv import load_dotenv, set_key
 
-CLIENT_ID = 'y405cufg37e8l2tmh6u9ruwl9011ce'
-CLIENT_SECRET = 'ykm1ok8yrf2ym2jcz7tcp8pcdthnkk'
+CLIENT_ID = ''
+CLIENT_SECRET = ''
 TOKEN_FILE = "tokens.json"
 
 load_dotenv()
